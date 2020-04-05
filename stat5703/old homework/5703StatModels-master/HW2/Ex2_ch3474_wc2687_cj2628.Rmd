@@ -1,0 +1,143 @@
+---
+title: "STAT5703 HW2 Ex1"
+author: "Chao Huang (ch3474), Wancheng Chen (wc2687), Chengchao Jin (cj2628)"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(Amelia)
+library(SMPracticals)
+```
+
+## Exercise 2
+
+#### Question 1
+
+```{r}
+data <- read.table('scores.txt', header = TRUE, sep = "", dec = ".")
+colnames(data) <- c('A','B','C','D','E')
+```
+
+```{r}
+# Complete case analysis.
+cov_1 <- cov(data,use="complete.obs")
+cov_1
+```
+
+```{r}
+# Available case analysis.
+cov_2 <- cov(data,use="pairwise.complete.obs")
+cov_2
+```
+
+```{r}
+# Mean imputation
+data_mean <- sapply(data, function(x) ifelse(is.na(x), mean(x, na.rm = TRUE), x))
+cov_3 <- cov(data_mean,use="complete.obs")
+cov_3
+```
+```{r}
+# Mean inputation with bootstrap
+cov_4<-matrix(rep(0,25),ncol=5)
+for(i in 1:200){
+  ind<-sample(nrow(data),22,replace=TRUE)
+  temp <- sapply(data[ind,], function(x) ifelse(is.na(x), mean(x, na.rm = TRUE), x))
+  cov_4 <- cov_4 + cov(temp,use="complete.obs")
+}
+cov_4/200
+```
+
+```{r}
+# The EM-algorithm
+a.out <- amelia(data,m=1,boot.type='none')
+cov_5 <- cov(a.out$imputations$imp1,use='complete.obs')
+cov_5
+```
+
+* Using mean imputation or mean imputation with bootstrap to fill the missing data has smaller covariance matrix value comparing to the other three methods.
+* Complete case analysis and em-algorithm show the negative correlation between variable A & B while the other methods do not.
+* The results of covariance matrix using methods of mean inputation and mean inputation with bootstrap are quite close.
+
+#### Question 2
+
+Because $\sqrt{n}(\hat \lambda_1-\lambda_1)\to N(0,2\lambda^2)$, we can get that $\hat \lambda_1 \sim N(\lambda_1,\frac{2\lambda^2}{n})$.
+$$P[-Z_{1-\frac{\alpha}{2}} \leq \frac{\hat \lambda_1-\lambda_1}{\sqrt{\frac{2\lambda_1^2}{n}}} \leq Z_{1-\frac{\alpha}{2}}]=1-\alpha$$
+Try to calculate the lower bound for $\lambda_1$
+$$\hat \lambda_1-\lambda_1 \leq \frac{Z_{1-\frac{\alpha}{2}}\sqrt{2}\lambda_1}{\sqrt{n}}$$
+$$\lambda_1 \geq \frac{\hat\lambda_1}{1+\sqrt{\frac{2}{n}}Z_{1-\frac{\alpha}{2}}}$$
+In the same way, we can calculate the upper bound for $\lambda_1$
+$$\lambda_1 \leq \frac{\hat\lambda_1}{1-\sqrt{\frac{2}{n}}Z_{1-\frac{\alpha}{2}}}$$
+So the confidence interval for $\lambda_1$ is:
+$$\begin{aligned}
+\lambda_1 &\in [\frac{\hat\lambda_1}{1+\sqrt{\frac{2}{n}}Z_{1-\frac{\alpha}{2}}},\frac{\hat\lambda_1}{1-\sqrt{\frac{2}{n}}Z_{1-\frac{\alpha}{2}}}]
+\end{aligned}$$
+```{r}
+get_interval <- function(lambda) {
+  mu = lambda
+  sd <- sqrt(2*lambda*lambda)
+  print(paste0('Left: ',mu/(1+sqrt(2/nrow(data))*qnorm(0.975)),
+               ' right: ',mu/(1-sqrt(2/nrow(data))*qnorm(0.975))))
+}
+get_interval(max(eigen(cov_1)$value))
+get_interval(max(eigen(cov_2)$value))
+get_interval(max(eigen(cov_3)$value))
+get_interval(max(eigen(cov_4)$value))
+get_interval(max(eigen(cov_5)$value))
+```
+
+* Using mean imputation with bootstrap to fill the missing data will generate much greater confidence interval range than the other four methods, Meanwhile, the value of lower bound and upper bound becomes much different than the others. Thus, we may not use mean imputation with bootstrape to fill the missing data.
+* Using em-algorithm to fill in the missing data, it can generate smaller range of confidence interval than using complete case analysis or available case analysis methods. It seems like a good method to fill in the missing data.
+
+#### Question 3
+
+```{r}
+pvar<-cov(mathmarks)
+pvar
+get_interval(max(eigen(pvar)$value))
+```
+
+* Using available case analysis method to fill in the missing data can generate more close sample covariance matrix and confidence interval of $\lambda_1$ to the results of true complete data comparing to other methods.
+* Imputation methods for the missing data, especially em-algorithm method, may be affected due to the insufficient data as the input data has only 22 rows.
+
+#### Question 4
+
+For Missing data, we can construct:
+$$X_i=\begin{bmatrix}
+X_{io} \\
+X_{im} \\
+\end{bmatrix}
+,
+X_iX_i'=\begin{bmatrix}
+X_{io}X_{io}'&X_{io}X_{im}' \\
+X_{im}X_{io}'&X_{im}X_{im}' \\
+\end{bmatrix}$$
+Let,
+$$\mu^{(k)}=\begin{bmatrix}
+\mu_{io}^{(k)} \\
+\mu_{im}^{(k)} \\
+\end{bmatrix}
+,
+\Sigma^{(k)}=\begin{bmatrix}
+\Sigma_{ioo}^{(k)}&\Sigma_{iom}^{(k)} \\
+\Sigma_{imo}^{(k)}&\Sigma_{imm}^{(k)} \\
+\end{bmatrix}$$
+Then, for E-step:
+$$E(X_i|X_io)=\begin{bmatrix}
+X_{io} \\
+E(X_{im}|X_{io}) \\
+\end{bmatrix}
+,
+E(X_iX_i'|X_{io})=\begin{bmatrix}
+X_{io}X_{io}'&X_{io}E(X_{im}'|X_{io}) \\
+E(X_{im}|X_{io})X_{io}'&E(X_{im}X_{im}'|X_{io}) \\
+\end{bmatrix}\\
+E(X_{im}|X_{io})=\mu_{im}^{(k)}+\Sigma_{imo}^{(k)}(\Sigma_{ioo}^{(k)})^{-1}(X_{io}-\mu_{io}^{(k)})\\
+E(X_{im}X_{im}'|X_{io})=(\Sigma_{imm}^{(k)}-\Sigma_{imo}^{(k)}(\Sigma_{ioo}^{(k)})^{-1}\Sigma_{iom}^{(k)})=C_{imm}^{(k)}$$
+Then, for M-step:
+$$\mu^{(k+1)}=\frac{1}{n}\sum_{i=1}^nE(X_i|X_{io})=0,
+\Sigma^{(k+1)}=\frac{1}{n}\sum_{i=1}^nE(X_iX_i'|X_{io})-\mu^{(k+1)}\mu^{(k+1)'}$$
+To simplify using the information above, we can get:
+$$\mu^{(k+1)}=\sum_{i=1}^n(\hat{X_i}-\mu)=0,\ 
+\Sigma^{(k+1)}=\sum_{i=1}^n(\Sigma-(\hat{X_i}-\mu)(\hat{X_i}-\mu)^T-C_i^{(k)})=0$$

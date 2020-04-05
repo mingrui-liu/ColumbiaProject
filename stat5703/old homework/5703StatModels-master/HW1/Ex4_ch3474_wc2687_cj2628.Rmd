@@ -1,0 +1,226 @@
+---
+title: "STAT5703 HW1 Ex4"
+author: "Chao Huang (ch3474), Wancheng Chen (wc2687), Chengchao Jin (cj2628)"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=4.5, fig.height=3)
+library("dplyr")
+```
+
+## Exercise 4.
+
+### Load dataset
+
+```{r}
+lines <- readLines("kidney.txt")
+```
+
+```{r}
+numbers_vec <- lapply(lines, 
+  function (line)  stringr::str_extract_all(line, "[-]?\\d+[\\.]?\\d*")) %>%
+  unlist(recursive = FALSE) %>%
+  Filter(f = function(x) length(x) == 3) %>%
+  Map(f = function(x) lapply(x, as.numeric))
+```
+
+```{r}
+df <- do.call(rbind.data.frame, numbers_vec)
+colnames(df) <- c("id", "age", "tot")
+rownames(df) <- df$id
+```
+
+#### Question 1.
+
+```{r}
+library(ggplot2)
+scatterPlot <- ggplot(df, mapping = aes(x=age, y=tot)) + 
+  geom_point() +
+  geom_smooth(method='lm')
+scatterPlot
+```
+
+The scatter plot shows that "age" and "tot" have a negative relationship and it could be fitted with a linear model.
+
+#### Question 2.
+I would like to use tot as the response variable because it is more intuitively reasonable to say that the tot function is affected by age. 
+
+#### Question 3. 
+```{r}
+Corr = cor(df$age, df$tot)
+Corr
+```
+
+Without any calculation, I expect the intercept to be positive and the slope to be negative. First, as age variable increases, the overall function of kidney, tot, tends to be lower and therefore the slope should be negative. Then, around age=20, the values of tot scatter around tot=0. So clearly, since the slope is negative, the value of tot should be larger than 0 at age=0. Intuitively, the overall function of kidney for a baby should be positive. So the intercept should be positive.
+
+#### Question 4.
+
+For the first model, $\alpha$ denotes the expected value when the independent variable is 0, while $\beta$ denotes how much the response will change if the independent variable is increased or decreased by 1.
+
+For the second model, now $\beta$ denotes how much the response will change if the **difference** between independent variable and its mean value is increased or decreased by 1. And $alpha$ denotes the expected value for the mean of independent variable.
+
+#### Question 5.
+
+For the first model, 
+
+```{r}
+linearModel <- lm(tot ~ age, data = df)
+summary(linearModel)
+```
+
+From the model, we can see that $\alpha$=2.860027 and $\beta$=-0.078588. So, when age=0, the tot is estimated to be 2.860027. Also, for each year increase of age, the tot is estimated to decrease by 0.078588. Both parameters have p-value much smaller than 0.05 so they are both statistically significant.
+
+For the second model,
+
+```{r}
+cent_df <- df %>% 
+  dplyr::mutate(cent_age = age - mean(age))
+
+centralLinearModel <- lm(tot ~ cent_age, data = cent_df)
+summary(centralLinearModel)
+```
+
+From the model, we can see that $\alpha$=-0.0001911 and $\beta$=-0.078588. Since there is a shift for every independent variable for centralization, the $\alpha$ was changed while $\beta$ remains the same value. $\beta$ has p-value much smaller than 0.05 so it's still statistically significant. However, $\alpha$ has a very large p-value, which means that we don't have enough evidence to reject the null hypothesis that the intercept is a non-zero value.
+
+#### Question 6.
+
+I would use the geometry to intepret these two parameters. Using linear algebra, one can prove that least square estimates minimize the squared distance between $X\beta$ and $y$ (both in vector form). In this way, the residual $y-X\beta$ should be orthogonal to the horizontal plane spanned by the columns of $X$. And therefore, least square estimates provide the optimal group of coefficients of the projected vector on the two-dimension plane with minimal loss.
+
+#### Question 7.
+
+```{r}
+beta <- as.numeric(linearModel$coefficients["age"])
+alpha <- as.numeric(linearModel$coefficients["(Intercept)"])
+predict <- function (age) alpha + beta * age
+```
+
+```{r}
+predict(100)
+```
+The prediction seems reasonable, since from the scatter plot above, the expected value for age=100 is assumed to be between -4.5 and -5.
+
+#### Question 8.
+
+```{r}
+res_df <- df %>% 
+  dplyr::mutate(prediction = predict(df$age)) %>%
+  dplyr::mutate(residual = tot - prediction)
+```
+
+```{r}
+ggplot(res_df) + geom_point(aes(x=predict(age), y=residual)) + geom_hline(yintercept=0,linetype="dashed", color = "red")
+```
+
+The plot shows that the residuals are randomly distributed around 0, so it seems reasonable to assume that errors $\epsilon_i$ are i.i.d..
+
+#### Question 9.
+```{r}
+minus <- function(x, y) max(y,x) - min(y,x)
+betaIntNormal <- Reduce(minus, confint(linearModel)[2,])
+betaIntAsym <- Reduce(minus, confint.default(linearModel)[2, ])
+```
+First, let's assume the noise terms are all normal i.i.d. random variables. Then we have,
+$$\hat{\beta} \sim N\left(\beta, \frac{\sigma^{2}}{\sum_{i=1}^{n}\left(x_{i}-\bar{x}\right)^{2}}\right)
+$$
+Then by substituting $S^2$ for $\sigma^2$, $\hat{\beta}$ has a student distribution, so the confidence interval should be,
+$$
+\hat{\beta} \pm t_{\alpha / 2, n-2} \times \sqrt{\frac{M S E}{\sum\left(x_{i}-\overline{x}\right)^{2}}}
+$$
+where $MSE=\frac{1}{n-2}\sum (y_i-\hat{\alpha}-\hat{\beta}x_i)^2$. So the confidence interval can be numerically calculated as,
+
+```{r}
+n <- nrow(df)
+MSE <- 1/(n-2) * sum((df$tot - df$age * beta - alpha)^2)
+sigma_square <- sum((df$age - mean(df$age))^2)
+half <- stats::qt(0.025, n-2) * sqrt(MSE / sigma_square)
+
+lb <- beta - half
+rb <- beta + half
+c(lb, rb)
+```
+
+So the confidence interval for $\beta$ is $[-0.0965,-0.0607]$. 
+
+Next, for the asymptotic and i.i.d assumption, using the results from Exercise 3 Problem 4.4, the asymptotic distribution of $\beta$ can be derived as below, with the help of Lyapunov Central Limit Theorem,
+$$
+\sqrt{n}(\hat{\beta}_{L S}-\beta) \stackrel{\mathcal{D}}{ \rightarrow} N(0, \sigma^{2} / \sigma_{X}^{2})
+$$
+where $\lim _{n \rightarrow \infty} \frac{1}{n} \sum_{i=1}^{n}\left(X_{i}-\bar{X_{n}}\right)^{2}=\sigma_{X}^{2}$. By move $sqrt(n)$ to the right side, we have,
+$$
+(\hat{\beta}_{L S}-\beta) \stackrel{\mathcal{D}}{ \rightarrow} N(0, \sigma^{2} / (n\sigma_{X}^{2}))=N(0, \frac{\sigma^2}{\sum_{i=1}^{n}\left(x_{i}-\bar{x}\right)^{2}})
+$$
+which is exactly the same with the normal assumption. Therefore, the asymptotic confidence interval should be the same as well.
+
+The second model may seem to be a weaker assumption at first sight, since it doesn't assume a normal prior on the noise terms. However, since the asymptotic distribution is exactly the same with that of normal assumption, the second model also requires $n$ goes to infinity. Therefore, the normal assumption is a more reasonable case, and it can fit all dataset regardless of the number of data samples.
+
+#### Question 10.
+
+```{r}
+boot.stat <- function(data, indices){
+data <- data[indices, ] # select cases in bootstrap sample
+mod <- lm(tot ~ age, data=data) # refit model
+coef(mod)["age"] # return coefficient vector
+}
+```
+
+```{r}
+set.seed(12345) # for reproducibility
+df.boot <- boot::boot(data=df, statistic=boot.stat, R=1000)
+```
+
+```{r}
+bootResult <- as.data.frame(df.boot$t) %>% 
+  dplyr::rename(beta=V1)
+```
+
+First we use a histogram and the corresponding density function to see the bootstrap distribution,
+```{r}
+ggplot(bootResult) +  
+  geom_histogram(aes(x=beta,y=..density..), bins=40) +
+  geom_density(aes(x=beta, y=..density..))
+```
+
+Then we can use the bootstrap results to compute the confidence interval,
+```{r}
+confInts <- boot::boot.ci(df.boot)
+confInts$basic[4:5]
+```
+The bootstrap interval is $[-0.0984, -0.0595]$, which is slightly wider than the analytical result, which is $[-0.0965,-0.0607]$.
+
+#### Question 11.
+
+```{r}
+LeaveOneOutCorr <- function (idx)  {
+  df_tmp <- df %>% dplyr::filter(id != idx)
+  cor(df_tmp$age, df_tmp$tot) - Corr
+}
+```
+```{r}
+corr_diff <- unlist(Map(LeaveOneOutCorr, seq.int(1, nrow(df))))
+df_lou <- df %>% dplyr::mutate(diff=corr_diff)
+```
+From the below plot, we may notice that there are quite large differences on the right hand side,
+```{r}
+ggplot(df_lou) + geom_col(aes(x=id, y=diff))
+```
+We then use a boxplot to find those outliers,
+
+```{r}
+ggplot(df_lou, aes(x=factor(0), y=diff)) + geom_boxplot()
+```
+
+We then choose those points with absolute differences greater than 0.005 as the outliers,
+```{r}
+outlierDetect <- function(corrVal) {
+  ifelse (abs(corrVal) > 0.005, TRUE, FALSE)
+}
+df_outlier <- df_lou %>% dplyr::mutate(outlier=outlierDetect(diff))
+```
+
+```{r}
+ggplot(df_outlier) + geom_point(aes(x=age, y=tot, color=outlier))
+```
+
+In conclusion, there are some data points which are more influential than others. In the above plot, they are marked as "outlier"s with special leave-one-out differences. 

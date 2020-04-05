@@ -1,0 +1,112 @@
+---
+title: "Q2_HW4"
+author: "Chao Huang"
+date: "11/29/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(mgcv)
+```
+
+## Exercise 2
+
+### 1. Simulate data and fit a lm model
+
+```{r}
+n <- 300
+data <- data.frame(x = rnorm(n, 0, 3), eps = rnorm(n, 0, sqrt(3)))
+data <- data %>% mutate(y=2+3*x+eps)
+```
+
+```{r}
+lm_model <- lm(y ~ x, data = data)
+summary(lm_model)
+```
+
+### 2. Finding distribution of $beta_1$ using bootstrap
+
+```{r}
+library(boot)
+
+beta <- function(data, indices) {
+  d <- data[indices,] # allows boot to select sample
+  fit <- lm(y ~ x, data=d)
+  return(summary(fit)$coefficients[[2]])
+}
+
+results <- boot(data=data, statistic=beta,
+   R=1000)
+
+plot(results)
+```
+
+### 3. Compute residuals and predicted value of lm and gam models
+
+```{r}
+gam_model <- gam(y ~ s(x), data = data)
+summary(gam_model)
+```
+
+```{r}
+predictions <- data.frame(lm=predict.lm(lm_model, newdata = data),
+                          gam=predict.gam(gam_model, newdata = data),
+                          x=data$x)
+
+predictions <- predictions %>% mutate(res = data$y - lm)
+```
+
+### 4. Compute the statistics T
+
+```{r}
+T_stat = sum((-predictions$lm + predictions$gam) * predictions$res)
+T_stat
+```
+
+### 5 & 6. Bootstrap
+
+```{r}
+T_boot <- function(data, indices) {
+  d <- df # fix to global data frame
+  # see piazza https://piazza.com/class/k0498hf6y8475b?cid=75
+  # result doesn't change much if bootstrap also applies here
+  
+  eps_boot <- rnorm(n, 0, 1)
+  
+  d <- d %>% mutate(y_target = lm + (y - lm) * eps_boot)
+  
+  fit_lm <- lm(y_target ~ x, data=d)
+  fit_gam <- gam(y_target ~ s(x), data=d)
+  
+  predictions <- data.frame(lm=predict.lm(fit_lm, newdata = d),
+                            gam=predict.gam(fit_gam, newdata = d)) %>% 
+    mutate(res=d$y_target - lm)
+  
+  T_stat <- sum((-predictions$lm + predictions$gam) * predictions$res)
+  
+  return(T_stat)
+}
+
+pred_boot <- predictions %>% mutate(y=data$y, x=data$x)
+df <- pred_boot
+results <- boot(data=pred_boot, statistic=T_boot, R=1000)
+```
+
+```{r}
+plot(results)
+```
+
+```{r}
+quantile(results$t, 0.95)
+```
+
+```{r}
+quantile(results$t, 0.95) > T_stat
+```
+
+### 7. Conclusion
+
+Since we have the null hypothesis as the model being a linear one, one can expect that under the null hypothesis $y - \hat{y_{lin}}$ should have a normal distribution with mean 0. Therefore, the test statistic, $T_1$ should be close to 0 under null hypothesis. Since the test statistic is smaller than 95 percentile of the distribution of $T_1$, and the so the p-value under the null hypothesis is greater than 0.05. Therefore we don't have enough evidence to reject the hypothesis of using a linear model to fit the data. 
+

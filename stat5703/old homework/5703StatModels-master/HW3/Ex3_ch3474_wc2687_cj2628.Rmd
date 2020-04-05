@@ -1,0 +1,69 @@
+---
+title: "STAT5703 HW3 Ex3"
+author: "Chao Huang (ch3474), Wancheng Chen (wc2687), Chengchao Jin (cj2628)"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Exercise 3.
+
+#### Question 1.
+
+* We use linear model to use sex, age, race, marr, occupation, sector, south and union as parameters to predict wage. As a person's age get older, his number of years of education and number of work experience always gets larger. It means these three variables are correlated to each other. So if we include age, education and experience at the same time, it will lead to colinearity.
+
+#### Question 2.
+
+```{r}
+library(readr)
+library(MASS)
+CpsWages <- read_table2("CpsWages.txt")[,c(-1,-4)]
+#CpsWages<-data.frame(CpsWages[,c(4,5)],sapply(CpsWages[,c(1,2,3,6,7,8,9)],function(x) as.factor(x)))
+lm1<-lm(CpsWages$wage~CpsWages$age+CpsWages$south+CpsWages$sex+CpsWages$union+CpsWages$race+CpsWages$occupation+CpsWages$sector+CpsWages$marr)
+summary(lm1)
+```
+```{r}
+par(mfrow=c(2,2))
+plot(lm1$residuals~lm1$fitted.values)
+abline(h=0,col="red")
+qqnorm(lm1$residuals)
+qqline(lm1$residuals,col="red")
+boxcox(lm1)
+```
+* From the residual plot, we can see that the dots are not randomly scattered around 0 and there is a pattern of hetroscedasticity. From the QQ-plot, we can see that there are many dots away from the qqline. So there is departure from the normal hypothesis in this model.
+
+#### Question 3.
+
+* According to p-value, not all parameters are statistically significant. We use t-test to test whether 'sector' is significant or not. From the table, we get the p-value from t-test for 'sector' is 0.547869 which is much larger than 0.05. So we fail to reject null hypothesis and conclude that the parameter 'sector' is not significant and should be eliminated from the model.
+
+#### Question 4.
+* From the summary table, we can see that the parameters 'sector' and 'marr' are not significant as their p-values are both larger than 0.05. So we use the leftover parameters to create a simplified model
+
+#### Question 5.
+```{r}
+lm2<-lm(CpsWages$wage~CpsWages$age+CpsWages$south+CpsWages$sex+CpsWages$union+CpsWages$race+CpsWages$occupation)
+summary(lm2)
+par(mfrow=c(2,2))
+plot(lm2$residuals~lm2$fitted.values)
+abline(h=0,col="red")
+qqnorm(lm2$residuals)
+qqline(lm2$residuals,col="red")
+boxcox(lm2)
+```
+
+From box-cox plot, we can see that $\lambda$=0 lies inside the confidence interval. So we need to transform y to log(y) as response variable. As a result, we get the following new model:
+```{r}
+lm3<-lm(log(CpsWages$wage)~CpsWages$age+CpsWages$south+CpsWages$sex+CpsWages$union+CpsWages$race+CpsWages$occupation)
+summary(lm3)
+par(mfrow=c(1,2))
+plot(lm3$residuals~lm3$fitted.values)
+abline(h=0,col="red")
+qqnorm(lm3$residuals)
+qqline(lm3$residuals,col="red")
+```
+Apparently, the residuals are now randomly scattered around 0 and the dots in qq-plot align with qq-line. So the normality assumption is met in this model. Also, from the summary table, all of parameters are statistically significant as all of their p-values are smaller than 0.05. So this simplied model is adequate.
+
+#### Question 6.
+No, deleting only two observations in a large data set will not significantly influence the conclusion.

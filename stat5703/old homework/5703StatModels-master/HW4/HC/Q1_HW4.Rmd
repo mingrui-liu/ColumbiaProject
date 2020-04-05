@@ -1,0 +1,79 @@
+---
+title: "Q1_HW4"
+author: "Chao Huang"
+date: "11/29/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+## Exercise 1
+```{r}
+data <- read.csv("cigarettes.txt", header = T, sep = " ")
+```
+
+### 1. Dist. of response
+
+```{r}
+ggplot(data, aes(x=cigs)) + geom_histogram(binwidth = 5)
+```
+
+The response variable has right-skewed distribution with multiple peaks. Numbers which are times of 10 have higher frequency than others and there are gaps between peaks. The rounding effect may come from the fact that people tend to consume a whole pack or half pack of cigarettes every day.
+
+### 2. Fit a GAM
+
+```{r}
+library(mgcv)
+```
+
+```{r}
+model <- gam(cigs ~ educ + s(cigpric) + white + s(age) + s(income) + restaurn, data = data, family = poisson)
+summary(model)
+```
+
+I would keep educ, white and restaurn in the parametric part since these covariates have fewer combination than the degree of freedom from the default setting of smooth function. For other covariates, using a smooth function will help increase deviance explained, so I add the smooth function for all of them.
+
+
+### 3. Interpret overall effect of age
+
+```{r}
+cor(data$age, data$cigs)
+```
+
+The age is positively correlated with the number of cigerattes smoked per day since the correlation is positive. Also it's significant in the glm model using poisson distribution as the results above show.
+
+### 4. Income in a linear fashion?
+
+Model directly using income in a linear fashion
+
+```{r}
+model <- gam(cigs ~ educ + s(cigpric) + white + s(age) + (income) + restaurn, data = data, family = poisson)
+summary(model)
+AIC(model)
+```
+
+Model using income after a log transformation
+
+```{r}
+model <- gam(cigs ~ educ + s(cigpric) + white + s(age) + log(income) + restaurn, data = data, family = poisson())
+summary(model)
+AIC(model)
+```
+
+So Using a log transformation can help slightly decrease AIC if we want to include the income variable in the parametric part.
+
+### 5. Impact of price per pack
+We can run a likelihood ratio test between model with cigpric and model without it. 
+
+```{r}
+model_wo_price <- gam(cigs ~ educ + s(cigpric) + white + s(age) + restaurn, data = data, family = poisson)
+
+test <- anova.gam(model_wo_price, model, test = "LRT")
+print(test)
+```
+
+So the answer is yes. Both the result from anova test and the significance value shown in gam fit summaries show that this covariate is significant in the model with a very small p-value.
+

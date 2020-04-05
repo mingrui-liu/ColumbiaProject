@@ -1,0 +1,61 @@
+---
+title: "STAT5703 HW1 Ex2"
+author: "Chao Huang (ch3474), Wancheng Chen (wc2687), Chengchao Jin (cj2628)"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=4.5, fig.height=3)
+library("dplyr")
+```
+
+## Exercise 2.
+
+#### Question 1.
+Based on the equation: $(E(X))^2+D(X)=E(X^2)$. We can get the Method of Moments estimator for $\lambda$: $$\hat{\lambda_M}^2+\hat{\lambda_M}=E(X^2)=\mu_2=\frac{1}{n}\sum_{i=1}^{n}X_i^2$$
+After simplification,
+$$(\hat{\lambda_M}+\frac{1}{2})^2=\frac{1}{n}\sum_{i=1}^{n}X_i^2+\frac{1}{4}$$
+$$\hat{\lambda_M}=\frac{-1+\sqrt{1+\frac{4}{n}\sum_{i=1}^{n}X_i^2}}{2}$$
+
+#### Question 2.
+Let $g(t)=\frac{-1+\sqrt{1+4t}}{2}$, so $g(\bar{X_n^2})=\lambda$
+Because $Var(X_i^2)=4\lambda^3 +6\lambda^2 +\lambda$, we can get the asymptotic distribution of $\bar{X_n}$: $$\sqrt{n}(\bar{X_n}-\mu_2)\xrightarrow[n\rightarrow \infty]{\mathcal{D}}\mathcal{N}(0,4\lambda^3 +6\lambda^2 +\lambda)$$
+Using Delta Method, 
+$$\sqrt{n}(\hat{\lambda_M}-\lambda)=\sqrt{n}(g(\bar{X_n})-g(\mu_2))\xrightarrow[n\rightarrow \infty]{\mathcal{D}}g'(\mu_2)\mathcal{N}(0,4\lambda^3 +6\lambda^2 +\lambda)$$
+Because $g'(t)=\frac{1}{\sqrt{1+4t}}$, $\mu_2=\lambda^2+\lambda$
+$$\sqrt{n}(\hat{\lambda_M}-\lambda)\xrightarrow[n\rightarrow\infty]{\mathcal{D}}\mathcal{N}(0,\frac{4\lambda^3+6\lambda^2+1}{4\lambda^2+4\lambda+1})$$
+
+#### Question 3.
+
+The methods of moments estimator for $\hat{\lambda_M}$ using the first moment is:
+$$\hat{\lambda_{M1}}=\bar{X_n}$$ 
+The methods of moments estimator for $\hat{\lambda_M}$ using the second moment is:
+$$\hat{\lambda_{M2}}=\frac{-1+\sqrt{1+\frac{4}{n}\sum_{i=1}^{n}X_i^2}}{2}$$
+Because both of the two estimators are unbiased:
+$$Eff(\lambda_{M1},\lambda_{M2})=\frac{MSE(\hat{\lambda_{M1}})}{MSE(\hat{\lambda_{M2})}}=\frac{Var(\hat{\lambda_{M1}})}{Var(\hat{\lambda_{M2})}}\\\xrightarrow[n\rightarrow \infty]{} \frac{\lambda}{\frac{4\lambda^3+6\lambda^2+1}{4\lambda^2+4\lambda+1}}=\frac{4\lambda^3+4\lambda^2+\lambda}{4\lambda^3+6\lambda^2+1}<1$$
+So the methods of moments estimator for $\hat{\lambda_M}$ using the first moment is more efficient.
+
+#### Question 4.
+The asymptotic distribution of $\bar{X_n}$ is:
+$$\sqrt{n}(\bar{X_n}-\mu)\xrightarrow[n\rightarrow\infty]{\mathcal{D}}\mathcal{N}(0,\lambda)$$
+Because $\hat{\lambda_{M1}}=\bar{X_n}$, using the Delta Method:
+The asymptotic distribution of $\hat{\lambda_{M1}}$ using the first moment is:
+$$\sqrt{n}(\hat{\lambda_{M1}}-\lambda)\xrightarrow[n\rightarrow\infty]{\mathcal{D}}\mathcal{N}(0,\lambda)$$
+Then, for $approximate\ (1-\alpha)$-confidence interval,
+
+$$L(\lambda)=\lambda-\frac{\lambda z_{1-\alpha/2}}{\sqrt{n}}$$
+
+$$R(\lambda)=\lambda+\frac{\lambda z_{1-\alpha/2}}{\sqrt{n}}$$
+So, the $approximate\ (1-\alpha)$-confidence interval for $\hat{\lambda_{M1}}$ is $[\lambda-\frac{\lambda z_{1-\alpha/2}}{\sqrt{n}},\lambda+\frac{\lambda z_{1-\alpha/2}}{\sqrt{n}}]$
+
+According to point 2, the asymptotic distribution of $\hat{\lambda_{M1}}$ using the second moment is:
+$$\sqrt{n}(\hat{\lambda_{M2}}-\lambda)\xrightarrow[n\rightarrow\infty]{\mathcal{D}}\mathcal{N}(0,\frac{4\lambda^3+6\lambda^2+1}{4\lambda^2+4\lambda+1})$$
+Then, for $approximate\ (1-\alpha)$-confidence interval,
+
+$$L(\lambda)=\lambda-\frac{(4\lambda^3+6\lambda^2+1)z_{1-\alpha/2}}{\sqrt{n}(4\lambda^2+4\lambda+1)}$$
+
+$$D(\lambda)=\lambda+\frac{(4\lambda^3+6\lambda^2+1)z_{1-\alpha/2}}{\sqrt{n}(4\lambda^2+4\lambda+1)}$$
+So, the $approximate\ (1-\alpha)$-confidence interval for $\hat{\lambda_{M2}}$ is $[\lambda-\frac{(4\lambda^3+6\lambda^2+1)z_{1-\alpha/2}}{\sqrt{n}(4\lambda^2+4\lambda+1)},\lambda+\frac{(4\lambda^3+6\lambda^2+1)z_{1-\alpha/2}}{\sqrt{n}(4\lambda^2+4\lambda+1)}]$
+
+While both the estimators have the same midpoint. The Method of Moments estimator for $\lambda$ based on the first moment has a smaller upper bound, bigger lower bound and smaller confidence intervals. 

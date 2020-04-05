@@ -1,0 +1,109 @@
+---
+title: "STAT5703 HW3 Ex1"
+author: "Chao Huang (ch3474), Wancheng Chen (wc2687), Chengchao Jin (cj2628)"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exercise 1
+
+
+```{r}
+library(SMPracticals)
+data <- pollution
+```
+
+#### Question 1. Initial Examination
+
+Examine these plots carefully, and comment. Are there outliers? Should covariates and/or the response be transformed? What difficulties might arise in accounting for the effect of air pollution on mortality?
+
+```{r}
+pairs(pollution)
+pairs(pollution[,c(1:3,15:16)]) # weather
+pairs(pollution[,c(4:11, 16)]) # social factors
+pairs(pollution[,c(12:14,16)]) # pollution
+```
+
+There are outliers in variables "hc" and "nox", which can be observed from the pair plot of all variables. Some variables have quite different scales and distributions compared with others, so transformation is needed. By looking at the final plot, we can see that first the outlier may affect the regression results, second some pollutions seem to be strongly correlated, for example nox and so. Therefore, we may have multicolinearity problem.
+
+
+#### Problem 2. Model selection
+
+Should all the variables be included? Try various models, choose one or perhaps a few that you think are similarly adequate, give careful interpretations of the covariate effects, and discuss their plausibility. Check the adequacy of your model.
+
+```{r}
+fit <- step(glm(mort~.-hc-nox-so,data=data))
+```
+
+We choose the final model given by Step command with the lowest AIC value. In this model, only 7 covariates are selected. We can run a seperate linear model for this subset to see the summary of regression.
+
+```{r}
+summary(lm(mort ~ prec + jant + jult + popn + educ + dens + nonw, -hc-nox-so,data=data))
+```
+As we can see here, although we have filtered out some covariates, only three remaining covariates are exactly significant, namely jant (temperature in Jan), educ (education) and nonw (non-white). For jant, it has a negative slope, which indicates that a low temperature in January will increase the mortality, which makes sense since a colder winter may kill more people. Similar pattern applies for educ variable, indicating that people with lower education level may have a higher risk of dying, which still makes sense. For nonw, the mortality increases with the percent of non white people in this district, which indicates that perhaps non-white people may have higher risk of dying. All these effects sound reasonable. 
+
+```{r}
+library(MASS)
+boxcox(fit)
+plot.glm.diag(fit) # model adequate?
+fit <- update(fit,log(mort)~.) # try log transform of response
+plot.glm.diag(fit) # model adequate?
+```
+
+The likelihood plot of boxcox shows that $\lambda=0$ is the best choice, which indicates a log-transform. However, whether applying this transform or not doesn't have a very significant difference on the final results. The residuals seem to have a normal distribution as our assumption. The linear model has a $R^2$ value of 0.7292. So using these variables, the linear model fits data well.
+
+#### Problem 3. Added variable plots
+
+What difficulties do you foresee for regression on all three pollution variables? Are outliers present? Try adding in these variables, or suitable transformations of them, to your chosen best model (or models) from above, and discuss the interpretation and fit of the various models.
+
+```{r}
+pairs(resid(lm(cbind(log(mort),hc,nox,so)~.,data=pollution)))
+```
+
+The added variable plot can help us identify the correlation between some covariates and the response variable, when fix all the other covariates. It can be seen from the first line that only so seems to have a significant linear relation with the response. Also hc and nox contain outliers as we observed before. Now we add all three covariates to our model.
+
+```{r}
+summary(lm(mort ~ prec + jant + jult + popn + educ + dens + nonw + hc + nox + so,data=data))
+```
+
+Including all three pollutions doesn't seem to be a good choice, since none of them appear to be significant. So we will only include "so" next.
+
+```{r}
+summary(lm(mort ~ prec + jant + jult + popn + educ + dens + nonw + so,data=data))
+```
+
+By including "so", it seems significant in the new linear model and indicates that higher "so" pollution may increase mortality. Also it makes the prec (percipitation) significant, and it seems that the rain will increase mortality as well.
+
+#### Problem 4. Fit ridge regression model
+
+Discuss the interpretability of the resulting parameter estimates.
+
+```{r}
+library(MASS)
+rfit <- lm.ridge(mort~.-hc-nox,data=data,lambda=seq(0,20,0.01))
+select(rfit)
+```
+
+```{r}
+mod <- lmridge::lmridge(mort~.-hc-nox,data, K=seq(0,20,0.01))
+lmridge::plot.lmridge(mod)
+```
+
+From the trace plot we can see that, two covariates are super sensitive to the value of K, namely nonw and jant. Therefore, the the significance of these two covariates shown in previous results is questionable, since real significant covariates will maintain a similar level of coefficients when K changes. 
+
+#### Problem 5. Other models
+
+Try using the functions lqs in library(lqs) for least trimmed squares regression, and rlm in library(MASS) for robust M-estimation, and see if your conclusions change.
+
+```{r}
+lqs(mort~.-hc-nox, data)
+```
+
+```{r}
+rlm(mort~.-hc-nox, data)
+```
+
+They both suggest that there exists a positive correlation between "so" and mortality.

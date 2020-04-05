@@ -1,0 +1,104 @@
+---
+title: "STAT5703 HW3 Ex2"
+author: "Chao Huang (ch3474), Wancheng Chen (wc2687), Chengchao Jin (cj2628)"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exercise 2
+
+#### Question 1
+
+```{r}
+library(mgcv)
+cars$speed2 <- (cars$speed)^2
+lr = lm(dist ~ speed + speed2 , data=cars)
+summary(lr)
+AIC(lr)
+```
+
+In this model, the p-value of variable 'speed' and 'speed2' both show that these two variables are not significant. Thus, we drop the comparing unsignificant variable 'speed' using 'stepwise' method. After dropping, we can see the AIC value of the model decreases, while both of the variables in the model become significant. 
+
+```{r}
+lr2 = step(lm(dist ~ speed2+speed , data=cars))
+summary(lr2)
+AIC(lr2)
+```
+
+#### Question 2
+
+As we drop the variable 'speed' in point 1, we could only get value of 'reaction time' in the residual of the formulation.
+$$time=\frac{dist-\hat{\beta_0}-\hat{\beta_1}*speed}{speed}$$
+By getting its value, we can estimate its distribution.
+
+#### Question 3
+
+```{r}
+lr_my <- function (X, y) {
+  qrx <- qr(X) ## returns a QR decomposition object 
+  Q <- qr.Q(qrx,complete=TRUE) ## extract Q
+  R <- qr.R(qrx) ## extract R
+  f <- t(Q)%*%y
+  f <- f[1:ncol(X),]
+  beta <- solve(R)%*%f
+  beta
+}
+ones <- rep(1,length(cars$speed2))
+newM <- matrix(c(ones,cars$speed2),ncol=2)
+lr_my(newM,cars$dist)
+```
+
+#### Question 4
+
+The function gives the right result for the coffecient of the linear regression model.
+```{r}
+newM2 <- matrix(c(ones,cars$speed2,cars$speed),ncol=3)
+lr_my(newM2,cars$dist)
+```
+
+#### Question 5
+
+The function gives the right result for the coffecient of the linear regression model.
+```{r}
+lr_my2 <- function (X, y) {
+  qrx <- qr(X) ## returns a QR decomposition object 
+  Q <- qr.Q(qrx,complete=TRUE) ## extract Q
+  R <- qr.R(qrx) ## extract R
+  f <- t(Q)%*%y
+  f <- f[1:ncol(X),]
+  beta <- solve(R)%*%f
+  residual <- y-X%*%beta
+  sigma <- as.vector(t(residual)%*%residual/(nrow(X)-ncol(X)))
+  variance <- solve(R)%*%t(solve(R))*sigma
+  list(coefficient=beta,std_error=sqrt(as.matrix(diag(variance),ncol=ncol(X))),
+       residual_variance=sigma)
+}
+newM2 <- matrix(c(ones,cars$speed,cars$speed2),ncol=3)
+lr_my2(newM2,cars$dist)
+```
+
+#### Question 6
+
+The function gives the right result for the coffecient of the linear regression model.
+```{r}
+lr_my3 <- function (X, y) {
+  qrx <- qr(X) ## returns a QR decomposition object 
+  Q <- qr.Q(qrx,complete=TRUE) ## extract Q
+  R <- qr.R(qrx) ## extract R
+  f <- t(Q)%*%y
+  f <- f[1:ncol(X),]
+  beta <- solve(R)%*%f
+  residual <- y-X%*%beta
+  sigma <- as.vector(t(residual)%*%residual/(nrow(X)-ncol(X)))
+  variance <- solve(R)%*%t(solve(R))*sigma
+  vrr <- solve(t(X)%*%X)
+  dia <- as.matrix(diag(vrr))
+  pvalue <- 2*pt(-abs(beta)/sqrt((sigma*dia)),df=nrow(X)-ncol(X))
+  list(coefficient=beta,std_error=sqrt(as.matrix(diag(variance),ncol=ncol(X))),
+       pvalue=pvalue,residual_variance=sigma)
+}
+newM2 <- matrix(c(ones,cars$speed,cars$speed2),ncol=3)
+lr_my3(newM2,cars$dist)

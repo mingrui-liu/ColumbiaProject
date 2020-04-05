@@ -1,0 +1,116 @@
+---
+title: "STAT5703 HW2 Ex5"
+author: "Chao Huang (ch3474), Wancheng Chen (wc2687), Chengchao Jin (cj2628)"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+ # keep this chunk in your .Rmd file
+ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+library(dplyr)
+```
+
+# Exercise 5
+
+## Q1
+
+```{r}
+# manually export the data from xls file to a csv file
+milk <- read.csv("./milk.csv", sep = "\t", header = F, 
+                 col.names = c("Month", "Production"), 
+                 as.is = F)
+```
+
+```{r}
+library(lubridate)
+milk <- milk %>% 
+  mutate(Month_OBJ=ymd(Month, truncated = 1)) %>% 
+  mutate(Idx=row_number())
+
+library(ggplot2)
+
+milk %>% ggplot(aes(x=Month_OBJ, y=Production)) + 
+  geom_line() + 
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+```{r}
+# fit a linear model
+lm_trend <- lm(Production ~ Idx, milk)
+lm_trend
+```
+
+```{r}
+library(ggfortify)
+autoplot(lm_trend)
+```
+
+Here the regression model is fitted using the index of each month instead of the timestamp. It can be interpreted as the production of first month is around 611 pounds per cow, and later on , for each month, there will be an increase of 1.693 pound of the production per cow, which indicates a trend component.
+
+The residual plots show that the residuals seem to scatter randomly with a mean value of 0 and a similar variance with different fitted value. So it's possible to view the residuals as a stationary time series.
+
+## Q2
+
+```{r, fig.height=8}
+residuals <- milk %>% 
+  mutate(res=lm_trend$residuals) %>% 
+  select(res) %>% 
+  as.ts()
+
+acf(residuals)
+```
+
+From the ACF plot, we can see that there is a strong seasonal component with the period of 12 months in this dataset.
+
+```{r}
+forecast::ggPacf(residuals)
+```
+
+Eliminate the seasonal effect and stationarize it using a first order difference,
+
+```{r}
+forecast::ggPacf(residuals %>% diff(12) %>% diff())
+```
+
+From PACF model after eliminating the seasonal effect, we can see that there seem to be a AR(1) or AR(2) model since PACF cuts off quickly after the first two bars (the second bar is almost as large as the first one). Since there is a spike at lag=12 after differencing, it also indicates a seasonal AR(1) component.
+
+## Q3
+
+Before fitting a AR model, we first eliminate the seasonal effect by using diff(12).
+
+```{r}
+library(forecast)
+fitAR1 <- Arima(residuals %>% diff(12), order=c(1,0,0))
+fitAR1
+checkresiduals(fitAR1)
+```
+
+```{r}
+fitAR2 <- Arima(residuals %>% diff(12), order=c(2,0,0))
+
+fitAR2
+checkresiduals(fitAR2)
+```
+
+AR(1) and AR(2) doesn't seem to have a huge difference, the ACF plot seems to have a large spike at lag=12, so it may indicate another seasonal MA(1) component there. AR(2) has a slightly higher AICc compared with AR(1).
+
+## Q4
+
+```{r}
+auto <- auto.arima(residuals %>% diff(12), seasonal = T, 
+                     approximation = F, stepwise = F)
+auto
+checkresiduals(auto)
+```
+
+The auto chosen model has a much lower AICc of 1105, better than AR(1) and AR(2) model. The model includes both the MA(2) and AR(2) component with a first order difference, which is similar to what we have observed in the previous question.
+
+By including a seasonal ARIMA component and manually searching the orders and selecting them using AICc score, we have a better model ARIMA(2,0,1)(1,1,1)[12] with a lower AICc score of 1050.98. And now the large spike at lag=12 in ACF plot has been removed. 
+
+```{r}
+arima <- Arima(residuals %>% diff(12),order=c(1,0,1),
+               seasonal = list(order = c(1, 1, 1), period = 12))
+arima
+checkresiduals(arima)
+```
+

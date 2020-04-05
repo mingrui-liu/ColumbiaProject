@@ -1,0 +1,157 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={STAT5703 HW1 Ex1},
+  pdfauthor={Chao Huang (ch3474), Wancheng Chen (wc2687), Chengchao Jin (cj2628)},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+% https://github.com/rstudio/rmarkdown/issues/337
+\let\rmarkdownfootnote\footnote%
+\def\footnote{\protect\rmarkdownfootnote}
+
+% https://github.com/rstudio/rmarkdown/pull/252
+\usepackage{titling}
+\setlength{\droptitle}{-2em}
+
+\pretitle{\vspace{\droptitle}\centering\huge}
+\posttitle{\par}
+
+\preauthor{\centering\large\emph}
+\postauthor{\par}
+
+\predate{\centering\large\emph}
+\postdate{\par}
+
+\title{STAT5703 HW1 Ex1}
+\author{Chao Huang (ch3474), Wancheng Chen (wc2687), Chengchao Jin
+(cj2628)}
+\date{}
+
+\begin{document}
+\maketitle
+
+\hypertarget{exercise-1.}{%
+\subsection{Exercise 1.}\label{exercise-1.}}
+
+\hypertarget{question-1.}{%
+\paragraph{Question 1.}\label{question-1.}}
+
+To calculate \(p^{th}\), we need to find \(Q_D(p)\) such that
+\(P(D\leq Q_D(p))=p\). Then, the previous function can be transformed to
+
+\[\int_{0}^{Q_D(p)}\lambda e^{-\lambda D}dD=1-e^{-\lambda Q_D(p)}=p\]
+
+So, from this equation, \(Q_D(p)\) can be expressed by
+
+\[Q_D(p)=-\frac{1}{\lambda}\ln{(1-p)}\]
+
+\hypertarget{question-2.}{%
+\paragraph{Question 2.}\label{question-2.}}
+
+From question(a), we already obtain the equation for \(Q_D(p)\) which is
+\(Q_D(p)=-\frac{1}{\lambda}\ln{(1-p)}\). Then, to find the MLE of
+\(Q_D(p)\), we can find the MLE of \(\lambda\) first and then replace
+\(\lambda\) with its Maximum Likelihood Estimator \(\hat\lambda^{MLE}\).
+\(D_1,...,D_n\) are i.i.d. Exponential random variables with parameter
+\(\lambda\), the log-likelihood function is
+
+\[\ell (\lambda ;D_1,...,D_n)=n\ln{\lambda}-\sum_{i=1}^n\lambda D_i\]
+The MLE \(\hat\lambda^{MLE}\) is
+
+\[\hat\lambda^{MLE}=\frac{1}{\bar{D_n}}\]
+
+and
+
+\[Q_D(p)^{MLE}=-\frac{1}{\hat\lambda^{MLE}}\ln{(1-p)}=-\bar{D_n}\ln{(1-p)}\]
+
+\hypertarget{question-3.}{%
+\paragraph{Question 3.}\label{question-3.}}
+
+\(D_1,...,D_n\overset{i.i.d.}{\sim}Exp(\lambda)\). Then the CLT tells us
+that
+\[\sqrt{n}(\bar{D_n}-\mu)\xrightarrow[n\rightarrow \infty]{\mathcal{D}}\mathcal{N}(0,\sigma^2)\]
+Hence, by Delta Method we can get,
+\[\sqrt{n}(Q_D(p)+\frac{\ln{(1-p)}}{\lambda})\xrightarrow[n\rightarrow \infty]{\mathcal{D}}\mathcal{N}(0,\frac{(\ln{(1-p)})^2}{\lambda^2})\]
+Then, for \(approximate\ (1-\alpha)\)-confidence interval,
+
+\[L(D)=-\bar{D_n}\ln{(1-p)}-\frac{z_{1-\alpha/2}\times\ln{(1-p)}}{\lambda\sqrt{n}}\]
+
+\[R(D)=-\bar{D_n}\ln{(1-p)}+\frac{z_{1-\alpha/2}\times\ln{(1-p)}}{\lambda\sqrt{n}}\]
+So, the \(approximate\ (1-\alpha)\)-confidence interval for \(Q_D(p)\)
+is
+\([-\bar{D_n}\ln{(1-p)}-\frac{z_{1-\alpha/2}\times\ln{(1-p)}}{\lambda\sqrt{n}},-\bar{D_n}\ln{(1-p)}+\frac{z_{1-\alpha/2}\times\ln{(1-p)}}{\lambda\sqrt{n}}]\)
+
+\hypertarget{question-4.}{%
+\paragraph{Question 4.}\label{question-4.}}
+
+We know that if \(D_1,...,D_n\) are independent exponential random
+variables with parameter \(\lambda\), then
+\[\lambda\bar{D_n}\sim \Gamma(n,n)\] So, \(\lambda\bar{D_n}\) is
+independent of the parameter \(\lambda\), which means it is an exact
+pivot. To construct an exact confidence interval of the median, we can
+first transform \(\lambda\bar{D_n}\) to \(\chi^2\) distribution. Then,
+\[2n\lambda\bar{D_n}\sim \chi^2_{2n}\] Hence, for any
+\(\alpha\in(0,1)\),
+\[P(\chi^2_{1-\alpha/2,2n}<2n\lambda\bar{D_n}<\chi^2_{\alpha/2,2n})=1-\alpha\]
+Since \(Q_D(0.5)=-\bar{D_n}\ln{0.5}\), then
+
+\[P(-\frac{\ln{0.5}\chi^2_{\alpha/2,2n}}{2n\lambda}<Q_D(0.5)<-\frac{\ln{0.5}\chi^2_{1-\alpha/2,2n}}{2n\lambda})=1-\alpha\]
+
+Hence, the \((1-\alpha)\) exact confidence interval of the median is,
+\[Q_D(0.5)\in[-\frac{\ln{0.5}\chi^2_{\alpha/2,2n}}{2n\lambda},-\frac{\ln{0.5}\chi^2_{1-\alpha/2,2n}}{2n\lambda}]\]
+
+\end{document}

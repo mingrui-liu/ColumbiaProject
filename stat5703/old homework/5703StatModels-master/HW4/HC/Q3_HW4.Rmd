@@ -1,0 +1,148 @@
+---
+title: "Q3_HW4"
+author: "Chao Huang"
+date: "11/29/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+## Exercise 3
+
+```{r}
+data <- read.csv("./falls.txt", sep = " ", header = T)
+```
+
+```{r}
+colnames(data)
+```
+
+### 1. Fit and find the best model & 2. model analysis
+
+First I will plot out the distribution of the response variable.
+
+```{r}
+ggplot(data, aes(x=falls)) + geom_histogram()
+```
+
+Since it's a variable concerning counts, it will be quite reasonable to formulate a glm using poisson distribution to model it. But first I will try a lm model and see how it works. Note that the id is simply an indentifier for each patient, we won't include it in the modelling.
+
+#### Linear Model
+
+```{r}
+lm_fit <- lm(falls ~ . -id, data = data)
+summary(lm_fit)
+```
+Note that although the vanilla linear model doesn't fit the dataset very well (with an adjusted R-squared of only 0.08), it does show the falls of past 12 month seems to be a significant covariate. This is not very surprising, since a patient falled often before will be likely to fall in the future. The factor variable of intervention and types of walking aid are also marked as significant but the p-value are not very small, which requires further investigate and modelling.
+
+We can also plot the residual plot to judge the feasibility of fitting a linear model to this dataset.
+
+```{r}
+plot(lm_fit)
+```
+
+```{r}
+AIC(lm_fit)
+```
+
+So it seems that there are strong correlations between residuals so this model may not be appropriate.
+
+#### GLM model with Poisson distribution and canonical link function
+
+
+```{r}
+glm_fit <- glm(falls ~ . - id, family = poisson, data = data)
+summary(glm_fit)
+```
+
+The glm fit seems to amplify the significance of walking aid and intervention. It also shows that days is also a significant variable. This is intuitive since the longer the period is, the more likely we will observe a fall for a patient. And using a glm also has the advantage of reducing AIC. Therefore glm is generally better than lm. Then we can use step function to select necessary covariates.
+
+```{r}
+step(glm_fit)
+```
+
+By reducing the number of covariates, we finally arrive at a glm model with only five variables. Then we fit a new model using these covariates.
+
+```{r}
+glm_fit_final <- glm(formula = falls ~ falls_past12mo + age + days + intervention + walk_aid, family = poisson, data = data)
+```
+
+```{r}
+plot(glm_fit_final)
+```
+
+Note that No.283 sample seems to be an outlier in the model. Let's see if we can draw the same conclusion after removing this datum.
+
+```{r}
+glm_fit_no_outlier <- glm(formula = falls ~ falls_past12mo + age + days + intervention + walk_aid, family = poisson, data = data[-283, ])
+
+summary(glm_fit_no_outlier)
+```
+
+```{r}
+plot(glm_fit_no_outlier)
+```
+
+The conclusion is simliar, what seems significant still remains siginificant. So we don't manually delete this datum in following questions.
+
+### 3. falls_past12mo variable
+
+I just use the number of this variable in the glm model, regarding it as a numeric covariate. The results of both glm and lm shows that this covariate is very significant to the final result. This covariate can be treated as some prior knowledge about this patient, and the results show that the probability of future falling is highly correlated with previous falls. 
+
+### 4. Role of days variable
+
+It measures the length of observation period. Intuitively, we would observe more falls if we observe for a longer time. It would also be reasonable to fit average number of falls per day.
+
+```{r}
+new_data <- data %>% mutate(falls_per_day = falls / days + 1e-6)
+```
+
+```{r}
+ggplot(new_data, aes(x=new_data$falls_per_day)) + geom_histogram(binwidth = 0.003)
+```
+
+Then we can use an exponential glm to fit the new data.
+
+```{r}
+glm_fit_exp <- glm(formula = falls_per_day ~ . - id - falls, family = Gamma, data = new_data)
+
+summary(glm_fit_exp)
+```
+
+However, the result doesn't tell us much given previous results. So we will stick to original responses.
+
+### 5. Is intervention signficant?
+
+The intervention is significant from the summary of previous glm model. However, the slope is positive, which means that those patients in the experiment group may be more likely to fall. This finding is somehow unexpected. One possible guess is that the two groups of participants are not drawn from the same group of people sharing similar physical conditions. In other words, it may be possible that people in the experiment group tend to fall more frequently than those in control group, which may also be the reason why they receive auxiliary exercise. In order to test this hypothesis, we will see the distribution of falls_past12mo covaraite in both groups and see if the distribution is different. The reason for choosing this covariate is 1) it's shown significant in all model; 2) it serves as a prior knowledge of the possibility of falling for each participant.
+
+```{r}
+summary(data[which(data$intervention == "A"),]$falls_past12mo)
+```
+
+```{r}
+summary(data[which(data$intervention == "B"),]$falls_past12mo)
+```
+
+After checking the distribution of both distributions, we can see that there is a participant with extremely large value of falls_past12mo in the control group. And this may lead to a wrong modelling in this group.
+
+```{r}
+which(data$falls_past12mo == max(data$falls_past12mo))
+```
+
+After checking which datum leads to the maximum value, it's shown as N0.283, which is also detected as a suspect of outlier in previous questions. However, with previous results, the slope for the experiment group will always be positive even if we delete the "outlier". Therefore, this should not be a possible explanation.
+
+Another possible explanation is that there may exisis other factors beneath each group which leads to different number of falls. For example, over exercising may have a negative effect on elder people, so they may fall more often after exercising.
+
+### 6. Interactions between covariates
+
+```{r}
+glm_int <- glm(formula = falls ~ falls_past12mo + age + days + intervention * walk_aid, family = poisson, data = data)
+
+summary(glm_int)
+```
+
+It will be effective to include the interactions bwtween intervention group and walk aid methods, as new interactions included are shown significant. Since typical type of exercise may be helpful to certain people if they are able to walk by themselves. So combine these two covariates together can help us decide the optimal type of exercise for different people.
+

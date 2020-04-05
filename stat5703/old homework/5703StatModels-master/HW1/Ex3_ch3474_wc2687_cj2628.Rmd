@@ -1,0 +1,68 @@
+---
+title: "STAT5703 HW1 Ex3"
+author: "Chao Huang (ch3474), Wancheng Chen (wc2687), Chengchao Jin (cj2628)"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=4.5, fig.height=3)
+library("dplyr")
+```
+
+## Exercise 3.
+
+#### Question 1.
+
+As $R_1-\mu$ has a zero mean distribution, all moments with odd orders are zero. Therefore, we have,
+$$\begin{aligned}
+   \gamma &= \mathbf{E}[R_1^3] = E[(R_1 - \mu + \mu)^3]\\
+ &= \mathbf{E}[(R_1-\mu)^3 + 3(R_1 - \mu)^2\mu + 3(R_1 - \mu)\mu^2+\mu^3] \\
+ &=  3\mu\mathbf{E}[(R_1 - \mu)^2] + \mu^3 \\
+ &= 3\mu Var[R_1 - \mu] + \mu^3 \\
+ &= \mu^3 + 3\mu\sigma^2
+ \end{aligned}$$
+
+#### Question 2.
+(a) Since $\bar{R}=\frac{1}{n}\sum \limits_{i=1}^{n}R_i$ has the distribution of $\mathbf{N}(\mu,\sigma^2/n)$, similarly to Q1, we can derive $\mathbf{E}[\bar{R}^3]=\mu^3 + 3\mu\frac{\sigma^2}{n}$. So the bias is $\mathbf{E}[\hat{\gamma} - \gamma]=-\frac{n-1}{n}\mu\sigma^3$.
+(b) $\hat{\gamma}$ is not consistent. Since $\bar{R} \sim N(\mu, \frac{\sigma^2}{n})$, we have, 
+$$\begin{aligned}
+   \Pr[|\bar{R}^3 - (\mu^3 + 3\mu\frac{\sigma^2}{n}) | \geq \epsilon]
+ &= 1 - \Pr[|\bar{R}^3 - (\mu^3 + 3\mu\frac{\sigma^2}{n}) | \leq \epsilon] \\
+ &= 1 - \Phi(\sqrt{n} \frac{(\mu^3 + 3\mu\frac{\sigma^2}{n} +  \epsilon)^{\frac{1}{3}}- \mu}{\sigma^2}) \\
+ & \quad + \Phi(\sqrt{n} \frac{(\mu^3 + 3\mu\frac{\sigma^2}{n} - \epsilon)^{\frac{1}{3}} - \mu}{\sigma^2}) \\
+ &\to 1 - \Phi(\sqrt{n} \frac{(\mu^3 +  \epsilon)^{\frac{1}{3}}- \mu}{\sigma^2}) + \Phi(\sqrt{n} \frac{(\mu^3 -  \epsilon)^{\frac{1}{3}}- \mu}{\sigma^2}) \\
+ &\to 1 - \Phi(\infty) + \Phi(- \infty) \\ 
+ &= 1 - 1 + 0 = 0, \textit{as } n \to \infty \textit{ with fixed } \epsilon 
+ \end{aligned}$$
+ 
+So $\hat{\gamma}$ converges to $\mu^3 + 3\mu\frac{\sigma^2}{n} \to \mu^3$, so it is not consistent to the estimated parameter $\gamma=\mu^3+3\mu\sigma^3$.
+
+#### Question 3.
+Since we have $\mathbf{E}[R_1R_2R_3]=\mu^3$ and $\mathbf{E}[\hat{\gamma}]=\mu^3 + \frac{3\mu\sigma^2}{n}$, we have $3\mu\sigma^2 / n=\mathbf{E}[\hat{\gamma}] - \mathbf{E}[R_1R_2R_3]$.Therefore, we can choose $n\hat{\gamma} - (n-1)R_1R_2R_3$ as the unbias estimator, whose mean is exactly $\mu^3$.
+
+#### Question 4.
+(a) Since $\mathbf{E[\tilde{\gamma}-\gamma]} = n*\frac{1}{n}\mathbf{E}[R_1^3]-\gamma =0$, the bias is 0.
+(b) $\tilde{\gamma}$ is consistent. Using LLT, $\tilde{\gamma} \overset{p}{\sim} \mathbf{E}[R_1^3] = \gamma$. So it's consistent.
+
+#### Question 5.
+Since the minimal sufficient statistics for normal distributions are $\bar{R}=\frac{1}{n} \sum \limits _{i=1}^{n} R_i$ and $\overline{R^2}=\frac{1}{n} \sum \limits _{i=1}^{n} R_i^2$. And they are also complete statistics. According to the Rao-Blackwell, we only need to find the conditional expection of an unbiased estimator by setting the two statistics as the condition. Therefore ${\gamma}_{UVME} = \mathbf{E}[\tilde{\gamma} |\bar{R}, \overline{R^2}]$. In the following, we use $T$ to denote the condition. We have,
+$$
+\begin{aligned}
+  \mathbf{E}[\tilde{\gamma} | T]
+ &=  \mathbf{E}[\frac{1}{n}\sum \limits_{i=1}^{n}R_i^3 | T]\\
+ &=  \mathbf{E}[\frac{1}{n}\sum \limits_{i=1}^{n}(R_i - \bar{R} + \bar{R})^3 | T] \\
+ &= \mathbf{E}[\frac{1}{n}\sum \limits_{i=1}^{n}[(R_i - \bar{R})^3 + 3(R_i - \bar{R})^2\bar{R} \\
+ & \quad + 3(R_i-\bar{R})\bar{R}^2 + \bar{R}^3] | T]
+ \end{aligned}
+$$
+By using symmmetry of the conditional distribution, one can prove that all (conditional) moments of $R_i - R$ which have odd orders are zero. Therefore, we have,
+$$
+\begin{aligned}
+  \mathbf{E}[\tilde{\gamma} | T]
+ &= \mathbf{E}[\frac{1}{n}\sum \limits_{i=1}^{n}[3(R_i - \bar{R})^2\bar{R} + \bar{R}^3] | T] \\
+ &= \mathbf{E}[\frac{1}{n}\sum \limits_{i=1}^{n}[3R_i^2\bar{R} - 6R_i\bar{R}^2 + 3\bar{R}^3 + \bar{R}^3] | T] \\
+ &= \mathbf{E}[\frac{3}{n}\bar{R} \sum \limits_{i=1}^{n}R_i^2 - 2\bar{R}^3|T] \\
+ &= 3\bar{R}\overline{R^2}-2(\bar{R})^3 
+ \end{aligned}
+$$
